@@ -120,8 +120,14 @@ inp.oninput = function () {
         var val = inp.value;
         var parts = val.split(/[bxo]/);
         var num = 0;
-        if (parts.length === 2 && (num = +parts[0]))
-            val = '0' + val.match(/[bxo]/)[0] + parts[1] + '0'.repeat(num);
+        if (parts.length === 2 && (num = +parts[0])) {
+            val = '0' + val.match(/[bxo]/)[0] + parts[1];
+            if (num < 0) {
+                val = '-' + val;
+                num *= -1;
+            }
+            val += '0'.repeat(num);
+        }
         outp.value = reverse(new BigNumber(val || 0));
     } catch(e) {
         outp.value = e.toString().split(': ')[1];
