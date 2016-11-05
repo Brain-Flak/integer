@@ -1,36 +1,46 @@
 'use strict';
 
-var inp = document.querySelector('#in'),
-    outp = document.querySelector('#out'),
-    slider = document.querySelector('#slider'),
-    value = document.querySelector('#value'),
-    copyButton = document.querySelector('#copy'),
+var $ = function () { return document.querySelector.apply(document, arguments); },
+    inp = $('#in'),
+    outp = $('#out'),
+    slider = $('#slider'),
+    value = $('#value'),
+    copyButton = $('#copy'),
+    run = $('#run'),
+    autorun = $('#autorun'),
     N = 5001,
     oldN = 0,
-    push = function (array, values) { 
-        Array.prototype.push.apply(array, values); },
+    push = function (array, values) { Array.prototype.push.apply(array, values); },
     numbers = [],
+    safe = [],
     msi = Number.MAX_SAFE_INTEGER;
 
 function copy (string) {
-	var textarea = document.createElement('textarea');
-	textarea.style.fontSize = '12pt';
-	textarea.style.border = '0';
-	textarea.style.padding = '0';
-	textarea.style.margin = '0';
-	textarea.style.right = '-9999px';
-	textarea.style.top = (window.pageYOffset || document.documentElement.scrollTop) + 'px';
-	textarea.setAttribute('readonly', '');
-	textarea.value = string;
-	document.body.appendChild(textarea);
-	//from https://github.com/zenorocha/select/blob/master/src/select.js
-	textarea.focus();
-	textarea.setSelectionRange(0, textarea.value.length);
-	document.execCommand('copy');
-	document.body.removeChild(textarea);
+    var textarea = document.createElement('textarea');
+    textarea.style.fontSize = '12pt';
+    textarea.style.border = '0';
+    textarea.style.padding = '0';
+    textarea.style.margin = '0';
+    textarea.style.right = '-9999px';
+    textarea.style.top = (window.pageYOffset || document.documentElement.scrollTop) + 'px';
+    textarea.setAttribute('readonly', '');
+    textarea.value = string;
+    document.body.appendChild(textarea);
+    //from https://github.com/zenorocha/select/blob/master/src/select.js
+    textarea.focus();
+    textarea.setSelectionRange(0, textarea.value.length);
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
 }
 
-function tryi(n, s) {
+function tryi(n, s, b) {
+    if (n < N && numbers[n].length > s.length)
+        numbers[n] = s;
+}
+
+function tryiunsafe(n, s) {
+    if (!safe[n])
+        safe[n] = numbers[n];
     if (n < N && numbers[n].length > s.length)
         numbers[n] = s;
 }
@@ -55,8 +65,8 @@ function process() {
         tryi(i * 2, '(' + numbers[i] + '){}');
         tryi(i * 3, '((' + numbers[i] + ')){}{}');
         tryi(i * 3 + 2, '((' + numbers[i] + ')()){}{}');
-        tryi(Math.floor((3 * i * i - i) / 2), numbers[i] + ')({({})({}[()])({})}{}');
-        tryi(i * i, numbers[i] + ')({({})({}[()])}{}');
+        tryiunsafe(Math.floor((3 * i * i - i) / 2), numbers[i] + ')({({})({}[()])({})}{}');
+        tryiunsafe(i * i, numbers[i] + ')({({})({}[()])}{}');
         var max = Math.floor(Math.pow(i, .5)) + 1;
         for (var l = 1; l < max; l++) {
             if (!(i % l)) {
@@ -68,7 +78,7 @@ function process() {
                         j++;
                         continue;
                     }
-                    tryi(k, '(' + numbers[i] + '){' + numbers[j] + '({}[' + numbers[l] + '])}{}');
+                    tryi(k, '(' + numbers[i] + '){' + (safe[j] || numbers[j]) + '({}[' + (safe[l] || numbers[l]) + '])}{}');
                     j++;
                 }
             }
@@ -98,15 +108,15 @@ function reverse (n) {
         } else if (n.mul(24).add(1).sqrt().mod(6).eq(5)) {
             s = add(s, ['', ')({({})({}[()])({})}{}']);
             n = n.mul(24).add(1).sqrt().sub(5).divToInt(6);
-        } else if (n.sub(2).mod(3).isZero()) {
-            s = add(s, ['((', ')()){}{}']);
-            n = n.sub(2).divToInt(3);
-        } else if (n.mod(3).isZero()) {
-            s = add(s, ['((', ')){}{}']);
-            n = n.divToInt(3);
         } else if (n.mod(2).isZero()) {
             s = add(s, ['(', '){}']);
             n = n.divToInt(2);
+        } else if (n.mod(3).isZero()) {
+            s = add(s, ['((', ')){}{}']);
+            n = n.divToInt(3);
+        } else if (n.sub(2).mod(3).isZero()) {
+            s = add(s, ['((', ')()){}{}']);
+            n = n.sub(2).divToInt(3);
         } else {
             s = add(s, ['', '()']);
             n = n.sub(1);
@@ -116,22 +126,26 @@ function reverse (n) {
 }
 
 run.onclick = function () {
-    try {
-        var val = inp.value;
-        var parts = val.split(/[bxo]/);
-        var num = 0;
-        if (parts.length === 2 && (num = +parts[0])) {
-            val = '0' + val.match(/[bxo]/)[0] + parts[1];
-            if (num < 0) {
-                val = '-' + val;
-                num *= -1;
+    var v = inp.value.split(','),
+        outputs = [];
+    for (var i = 0, val = v[0]; i < v.length; i++, val = v[i]) {
+        try {
+            var parts = val.split(/[bxo]/);
+            var num = 0;
+            if (parts.length === 2 && (num = +parts[0])) {
+                val = '0' + val.match(/[bxo]/)[0] + parts[1];
+                if (num < 0) {
+                    val = '-' + val;
+                    num *= -1;
+                }
+                val += '0'.repeat(num);
             }
-            val += '0'.repeat(num);
+            outputs.push(reverse(new BigNumber(val || 0)));
+        } catch(e) {
+            outputs.push(e.toString().split(': ')[1]);
         }
-        outp.value = reverse(new BigNumber(val || 0));
-    } catch(e) {
-        outp.value = e.toString().split(': ')[1];
     }
+    outp.value = outputs.join('\n\n');
 }
 
 slider.oninput = function () {
@@ -151,5 +165,12 @@ slider.onchange = function () {
 
 copyButton.onclick = function () {
     copy(outp.value);
+}
+
+autorun.onchange = function () {
+    if (autorun.checked)
+        inp.oninput = run.onclick;
+    else
+        inp.oninput = null;
 }
 
