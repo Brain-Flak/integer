@@ -47,6 +47,10 @@ function tryiunsafe(n, s) {
         numbers[n] = s;
 }
 
+function get(i) {
+    return safe[i] || numbers[i];
+}
+
 function process() {
     if (N > msi)
         N = msi;
@@ -61,15 +65,15 @@ function process() {
         for (var j = 1; j < 8; j++) {
             if (i + j >= N)
                 break;
-            tryi(i, numbers[i + j] + '[' + numbers[j] + ']');
+            tryi(i, get(i + j) + '[' + get(j) + ']');
         }
-        tryi(i + 1, numbers[i] + '()');
-        tryi(i * 2, '(' + numbers[i] + '){}');
-        tryi(i * 3, '((' + numbers[i] + ')){}{}');
-        tryi(i * 3 + 2, '((' + numbers[i] + ')()){}{}');
-        tryiunsafe(Math.floor((3 * i * i - i) / 2), numbers[i] + ')({({})({}[()])({})}{}');
-        tryiunsafe(Math.floor((3 * i * i + i) / 2), numbers[i] + ')({({})({})({}[()])}{}');
-        tryiunsafe(i * i, numbers[i] + ')({({})({}[()])}{}');
+        tryi(i + 1, get(i) + '()');
+        tryi(i * 2, '(' + get(i) + '){}');
+        tryi(i * 3, '((' + get(i) + ')){}{}');
+        tryi(i * 3 + 2, '((' + get(i) + ')()){}{}');
+        tryiunsafe(Math.floor((3 * i * i - i) / 2), get(i) + ')({({})({}[()])({})}{}');
+        tryiunsafe(Math.floor((3 * i * i + i) / 2), get(i) + ')({({})({})({}[()])}{}');
+        tryiunsafe(i * i, get(i) + ')({({})({}[()])}{}');
         var max = Math.floor(Math.pow(i, .5)) + 1;
         for (var l = 1; l < max; l++) {
             if (!(i % l)) {
@@ -81,7 +85,7 @@ function process() {
                         j++;
                         continue;
                     }
-                    tryi(k, '(' + numbers[i] + '){' + (safe[j] || numbers[j]) + '({}[' + (safe[l] || numbers[l]) + '])}{}');
+                    tryi(k, '(' + get(i) + '){' + get(j) + '({}[' + get(l) + '])}{}');
                     j++;
                 }
             }
@@ -105,6 +109,7 @@ function reverse (n) {
     if (n.lt(0))
         n = n.mul(-1);
     while (n.gte(N)) {
+        console.log(n.toNumber());
         var pentagonNumber = n.mul(24).add(1).sqrt(),
             pentagonTest = pentagonNumber.mod(6);
         if (n.sqrt().mod(1).isZero()) {
