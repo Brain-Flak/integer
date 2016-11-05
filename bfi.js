@@ -68,6 +68,7 @@ function process() {
         tryi(i * 3, '((' + numbers[i] + ')){}{}');
         tryi(i * 3 + 2, '((' + numbers[i] + ')()){}{}');
         tryiunsafe(Math.floor((3 * i * i - i) / 2), numbers[i] + ')({({})({}[()])({})}{}');
+        tryiunsafe(Math.floor((3 * i * i + i) / 2), numbers[i] + ')({({})({})({}[()])}{}');
         tryiunsafe(i * i, numbers[i] + ')({({})({}[()])}{}');
         var max = Math.floor(Math.pow(i, .5)) + 1;
         for (var l = 1; l < max; l++) {
@@ -104,12 +105,17 @@ function reverse (n) {
     if (n.lt(0))
         n = n.mul(-1);
     while (n.gte(N)) {
+        var pentagonNumber = n.mul(24).add(1).sqrt(),
+            pentagonTest = pentagonNumber.mod(6);
         if (n.sqrt().mod(1).isZero()) {
             s = add(s, ['', ')({({})({}[()])}{}']);
             n = n.sqrt().floor();
-        } else if (n.mul(24).add(1).sqrt().mod(6).eq(5)) {
+        } else if (pentagonTest.eq(5)) {
             s = add(s, ['', ')({({})({}[()])({})}{}']);
-            n = n.mul(24).add(1).sqrt().sub(5).divToInt(6);
+            n = pentagonNumber.sub(5).divToInt(6);
+        } else if (pentagonTest.eq(1)) {
+            s = add(s, ['', ')({({})({})({}[()])}{}']);
+            n = pentagonNumber.sub(1).divToInt(6);
         } else if (n.mod(2).isZero()) {
             s = add(s, ['(', '){}']);
             n = n.divToInt(2);
