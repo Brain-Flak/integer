@@ -39,9 +39,11 @@ function tryi(n, s, b) {
 }
 
 function tryiunsafe(n, s) {
+    if (n >= N)
+        return;
     if (!safe[n])
         safe[n] = numbers[n];
-    if (n < N && numbers[n].length > s.length)
+    if (numbers[n].length > s.length)
         numbers[n] = s;
 }
 
