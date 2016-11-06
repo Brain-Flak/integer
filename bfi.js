@@ -8,6 +8,8 @@ var $ = function () { return document.querySelector.apply(document, arguments); 
     copyButton = $('#copy'),
     run = $('#run'),
     autorun = $('#autorun'),
+    test = $('#test'),
+    testResult = $('#test_result'),
     N = 5001,
     oldN = 0,
     push = function (array, values) { Array.prototype.push.apply(array, values); },
@@ -35,8 +37,12 @@ function copy (string) {
 }
 
 function tryi(n, s, b) {
-    if (n < N && numbers[n].length > s.length)
+    if (n >= N)
+        return;
+    if (numbers[n].length > s.length)
         numbers[n] = s;
+    if (safe[n] && safe[n].length > s.length)
+        safe[n] = s;
 }
 
 function tryiunsafe(n, s) {
@@ -54,10 +60,8 @@ function tryn(i, n, s) {
     var s2 = negatives[i];
     if (s2)
         negatives[n] = s2 + s;
-    else {
-        s2 = get(i);
-        negatives[n] = '[' + s2 + ']' + s;
-    }
+    else
+        negatives[n] = '[' + get(i) + ']' + s;
 }
 
 function get(i) {
@@ -85,11 +89,11 @@ function process() {
         tryi(i * 2, '(' + get(i) + '){}');
         tryi(i * 3, '((' + get(i) + ')){}{}');
         tryi(i * 3 + 2, '((' + get(i) + ')()){}{}');
-        tryiunsafe(i * i, get(i) + ')({({})({}[()])}{}');
+        tryiunsafe(i * i, numbers[i] + ')({({})({}[()])}{}');
         tryn(i, i * i, ')({({})({}())}{}');
         for (var k = 5; k <= maxSides; k++) {
-            tryiunsafe(Math.floor(((k - 2) * i * i - (k - 4) * i) / 2), get(i) + ')({({})({}[()])' + '({})'.repeat(k - 4) + '}{}');
-            tryiunsafe(Math.floor(((k - 2) * i * i + (k - 4) * i) / 2), get(i) + ')({' + '({})'.repeat(k - 3) + '({}[()])}{}');
+            tryiunsafe(Math.floor(((k - 2) * i * i - (k - 4) * i) / 2), numbers[i] + ')({({})({}[()])' + '({})'.repeat(k - 4) + '}{}');
+            tryiunsafe(Math.floor(((k - 2) * i * i + (k - 4) * i) / 2), numbers[i] + ')({' + '({})'.repeat(k - 3) + '({}[()])}{}');
             tryn(i, Math.floor(((k - 2) * i * i - (k - 4) * i) / 2), ')({({})({}())' + '({})'.repeat(k - 4) + '}{}');
             tryn(i, Math.floor(((k - 2) * i * i + (k - 4) * i) / 2), ')({' + '({})'.repeat(k - 3) + '({}())}{}');
         }
@@ -120,6 +124,8 @@ function add(a, b) {
 }
 
 function reverse (n) {
+    if (!(n instanceof BigNumber))
+        n = new BigNumber(n);
     if (!n.mod(1).isZero())
         throw 'Error: not an integer';
     if (n.isZero())
@@ -141,7 +147,7 @@ function reverse (n) {
             if (polygonNumber.mod(1).isZero()) {
                 console.log('s1', s);
                 s = add(s, [
-                    '', 
+                    '',
                     neg ?
                         ')({({})({}())' + '({})'.repeat(i - 4) + '}{}' :
                         ')({({})({}[()])' + '({})'.repeat(i - 4) + '}{}'
@@ -154,7 +160,7 @@ function reverse (n) {
             polygonNumber = n.mul(8 * i - 16).add((i - 4) * (i - 4)).sqrt().sub(i - 4).div(2 * i - 4);
             if (polygonNumber.mod(1).isZero()) {
                 s = add(s, [
-                    '', 
+                    '',
                     neg ?
                         ')({' + '({})'.repeat(i - 3) + '({}())}{}' :
                         ')({' + '({})'.repeat(i - 3) + '({}[()])}{}'
@@ -188,6 +194,20 @@ function reverse (n) {
     return '([' + s.join(numbers[n]).slice(1, -1) + '])';
 }
 
+function strain (n) {
+    var isPrime = Array(n).fill(true);
+    for (var i = 2; i <= n; i++) {
+        if (isPrime[i]) {
+            var j = i << 1;
+            while (j < n) {
+                isPrime[j] = false;
+                j += i;
+            }
+        }
+    }
+    return isPrime.map(function (_, i) { return _ && i > 1 &&  i; }).filter(function (o) { return o; });
+}
+
 run.onclick = function () {
     var v = inp.value.split(','),
         outputs = [];
@@ -203,7 +223,7 @@ run.onclick = function () {
                 }
                 val += '0'.repeat(num);
             }
-            outputs.push(reverse(new BigNumber(val || 0)));
+            outputs.push(reverse(val || 0));
         } catch(e) {
             outputs.push(e.toString().split(': ')[1]);
         }
@@ -235,5 +255,25 @@ autorun.onchange = function () {
         inp.oninput = run.onclick;
     else
         inp.oninput = null;
+}
+
+test.onclick = function () {
+    if (testResult.innerHTML)
+        return;
+    if (+slider.value < 10000) {
+        slider.value = 10000;
+        N = 10000;
+        value.innerHTML = N;
+        process();
+        oldN = 10000;
+    }
+    var primes = strain(10000).filter(function (value) { return value > 1000; }),
+        length = 0;
+    console.log(primes);
+    for (var i = 0; i < primes.length; i++) {
+        console.log(reverse(primes[i]));
+        length += reverse(primes[i]).length;
+    }
+    testResult.innerHTML = 'Bytecount for primes from 1000 to 10000: ' + length;
 }
 
