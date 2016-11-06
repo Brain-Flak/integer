@@ -152,7 +152,11 @@ function reverse (n) {
         }
     }
     n = n.toNumber();
-    return s.join(neg ? negatives[n] || ('[' + numbers[n] + ']') : numbers[n]);
+    if (!neg)
+        return s.join(numbers[n]);
+    if (neg && negatives[n])
+        return s.join(negatives[n]);
+    return '([' + s.join(numbers[n]).slice(1, -1) + '])';
 }
 
 run.onclick = function () {
