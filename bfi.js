@@ -75,6 +75,7 @@ function process() {
         oldN += toPush;
     }
     for (var i = 2; i < N; i++) {
+        var maxSides = 5;
         for (var j = 1; j < 8; j++) {
             if (i + j >= N)
                 break;
@@ -84,12 +85,14 @@ function process() {
         tryi(i * 2, '(' + get(i) + '){}');
         tryi(i * 3, '((' + get(i) + ')){}{}');
         tryi(i * 3 + 2, '((' + get(i) + ')()){}{}');
-        tryiunsafe(Math.floor((3 * i * i - i) / 2), get(i) + ')({({})({}[()])({})}{}');
-        tryiunsafe(Math.floor((3 * i * i + i) / 2), get(i) + ')({({})({})({}[()])}{}');
         tryiunsafe(i * i, get(i) + ')({({})({}[()])}{}');
-        tryn(i, Math.floor((3 * i * i - i) / 2), ')({({})({}())({})}{}');
-        tryn(i, Math.floor((3 * i * i + i) / 2), ')({({})({})({}())}{}');
         tryn(i, i * i, ')({({})({}())}{}');
+        for (var k = 5; k <= maxSides; k++) {
+            tryiunsafe(Math.floor(((k - 2) * i * i - (k - 4) * i) / 2), get(i) + ')({({})({}[()])' + '({})'.repeat(k - 4) + '}{}');
+            tryiunsafe(Math.floor(((k - 2) * i * i + (k - 4) * i) / 2), get(i) + ')({' + '({})'.repeat(k - 3) + '({}[()])}{}');
+            tryn(i, Math.floor(((k - 2) * i * i - (k - 4) * i) / 2), ')({({})({}())' + '({})'.repeat(k - 4) + '}{}');
+            tryn(i, Math.floor(((k - 2) * i * i + (k - 4) * i) / 2), ')({' + '({})'.repeat(k - 3) + '({}())}{}');
+        }
         var max = Math.floor(Math.pow(i, .5)) + 1;
         for (var l = 1; l < max; l++) {
             if (!(i % l)) {
@@ -126,18 +129,44 @@ function reverse (n) {
     if (neg)
         n = n.mul(-1);
     while (n.gte(N)) {
-        var pentagonNumber = n.mul(24).add(1).sqrt(),
-            pentagonTest = pentagonNumber.mod(6);
+        var maxSides = 5;
         if (n.sqrt().mod(1).isZero()) {
             s = add(s, ['', neg ? ')({({})({}())}{}' : ')({({})({}[()])}{}']);
             n = n.sqrt().floor();
-        } else if (pentagonTest.eq(5)) {
-            s = add(s, ['', neg ? ')({({})({}())({})}{}' : ')({({})({}[()])({})}{}']);
-            n = pentagonNumber.sub(5).divToInt(6);
-        } else if (pentagonTest.eq(1)) {
-            s = add(s, ['', neg ? ')({({})({})({}())}{}' : ')({({})({})({}[()])}{}']);
-            n = pentagonNumber.sub(1).divToInt(6);
-        } else if (n.mod(2).isZero()) {
+            continue;
+        }
+        var success = false;
+        for (var i = 5; i <= maxSides; i++) {
+            var polygonNumber = n.mul(8 * i - 16).add((i - 4) * (i - 4)).sqrt().add(i - 4).div(2 * i - 4);
+            if (polygonNumber.mod(1).isZero()) {
+                console.log('s1', s);
+                s = add(s, [
+                    '', 
+                    neg ?
+                        ')({({})({}())' + '({})'.repeat(i - 4) + '}{}' :
+                        ')({({})({}[()])' + '({})'.repeat(i - 4) + '}{}'
+                ]);
+                console.log('s2', s);
+                n = polygonNumber.floor();
+                success = true;
+                break;
+            }
+            polygonNumber = n.mul(8 * i - 16).add((i - 4) * (i - 4)).sqrt().sub(i - 4).div(2 * i - 4);
+            if (polygonNumber.mod(1).isZero()) {
+                s = add(s, [
+                    '', 
+                    neg ?
+                        ')({' + '({})'.repeat(i - 3) + '({}())}{}' :
+                        ')({' + '({})'.repeat(i - 3) + '({}[()])}{}'
+                ]);
+                n = polygonNumber.floor();
+                success = true;
+                break;
+            }
+        }
+        if (success)
+            continue;
+        if (n.mod(2).isZero()) {
             s = add(s, ['(', '){}']);
             n = n.divToInt(2);
         } else if (n.mod(3).isZero()) {
