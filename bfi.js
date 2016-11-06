@@ -12,6 +12,7 @@ var $ = function () { return document.querySelector.apply(document, arguments); 
     oldN = 0,
     push = function (array, values) { Array.prototype.push.apply(array, values); },
     numbers = [],
+    negatives = [],
     safe = [],
     msi = Number.MAX_SAFE_INTEGER;
 
@@ -47,6 +48,18 @@ function tryiunsafe(n, s) {
         numbers[n] = s;
 }
 
+function tryn(i, n, s) {
+    if (n >= N)
+        return;
+    var s2 = negatives[i];
+    if (s2)
+        negatives[n] = s2 + s;
+    else {
+        s2 = get(i);
+        negatives[n] = '[' + s2 + ']' + s;
+    }
+}
+
 function get(i) {
     return safe[i] || numbers[i];
 }
@@ -74,6 +87,9 @@ function process() {
         tryiunsafe(Math.floor((3 * i * i - i) / 2), get(i) + ')({({})({}[()])({})}{}');
         tryiunsafe(Math.floor((3 * i * i + i) / 2), get(i) + ')({({})({})({}[()])}{}');
         tryiunsafe(i * i, get(i) + ')({({})({}[()])}{}');
+        tryn(i, Math.floor((3 * i * i - i) / 2), ')({({})({}())({})}{}');
+        tryn(i, Math.floor((3 * i * i + i) / 2), ')({({})({})({}())}{}');
+        tryn(i, i * i, ')({({})({}())}{}');
         var max = Math.floor(Math.pow(i, .5)) + 1;
         for (var l = 1; l < max; l++) {
             if (!(i % l)) {
@@ -94,7 +110,7 @@ function process() {
 }
 
 process();
-oldN = 5001;
+oldN = N;
 
 function add(a, b) {
     return [a[0] + b[0], b[1] + a[1]];
@@ -105,21 +121,21 @@ function reverse (n) {
         throw 'Error: not an integer';
     if (n.isZero())
         return '';
-    var s = n.gt(0) ? ['(', ')'] : ['([', '])'];
-    if (n.lt(0))
+    var neg = n.lt(0),
+        s = ['(', ')'];
+    if (neg)
         n = n.mul(-1);
     while (n.gte(N)) {
-        console.log(n.toNumber());
         var pentagonNumber = n.mul(24).add(1).sqrt(),
             pentagonTest = pentagonNumber.mod(6);
         if (n.sqrt().mod(1).isZero()) {
-            s = add(s, ['', ')({({})({}[()])}{}']);
+            s = add(s, ['', neg ? ')({({})({}())}{}' : ')({({})({}[()])}{}']);
             n = n.sqrt().floor();
         } else if (pentagonTest.eq(5)) {
-            s = add(s, ['', ')({({})({}[()])({})}{}']);
+            s = add(s, ['', neg ? ')({({})({}())({})}{}' : ')({({})({}[()])({})}{}']);
             n = pentagonNumber.sub(5).divToInt(6);
         } else if (pentagonTest.eq(1)) {
-            s = add(s, ['', ')({({})({})({}[()])}{}']);
+            s = add(s, ['', neg ? ')({({})({})({}())}{}' : ')({({})({})({}[()])}{}']);
             n = pentagonNumber.sub(1).divToInt(6);
         } else if (n.mod(2).isZero()) {
             s = add(s, ['(', '){}']);
@@ -135,7 +151,8 @@ function reverse (n) {
             n = n.sub(1);
         }
     }
-    return s.join(numbers[n.toNumber()]);
+    n = n.toNumber();
+    return s.join(neg ? negatives[n] || ('[' + numbers[n] + ']') : numbers[n]);
 }
 
 run.onclick = function () {
